@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Otago Property Explorer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>Otago Property Explorer</h1>
+
+    <div class="field">
+      <label for="area">1. المنطقة / الحي</label>
+      <input id="area" type="text" dir="auto" placeholder="ابحث عن المنطقة" disabled>
+    </div>
+
+    <div class="field">
+      <label for="road">2. الطريق</label>
+      <input id="road" type="text" dir="auto" placeholder="ابحث عن الطريق" disabled>
+    </div>
+
+    <div class="field">
+      <label for="land">3. العقار / قطعة الأرض</label>
+      <input id="land" type="text" dir="auto" placeholder="ابحث عن العقار أو القطعة" disabled>
+    </div>
+
+    <div class="field">
+      <label for="address">4. العنوان</label>
+      <input id="address" type="text" dir="auto" placeholder="العناوين داخل الأرض" disabled>
+    </div>
+
+    <button id="save-json" type="button" disabled>حفظ بيانات الأرض (JSON)</button>
+    <p id="status" class="status"></p>
+  </aside>
+
+  <div id="map"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
