@@ -1,0 +1,48 @@
+/* Popup content. The map draws its popups inside its shadow DOM, which style.css doesn't reach,
+   so mapView.js loads this file there. */
+
+.land-popup {
+  direction: rtl;
+  min-width: 280px;
+  font-size: 12px;
+}
+
+.land-popup h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.land-popup h4 {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.land-popup p {
+  margin: 0;
+}
+
+.land-popup table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.land-popup th,
+.land-popup td {
+  padding: 3px 6px;
+  border: 1px solid #e1e5e9;
+  text-align: right;
+  vertical-align: top;
+}
+
+.land-popup th {
+  width: 40%;
+  font-weight: normal;
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.address-popup {
+  font-size: 12px;
+  line-height: 1.6;
+}

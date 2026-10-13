@@ -6,6 +6,8 @@ https://maps.orc.govt.nz/arcgis/rest/services/PropertyExternal/MapServer
 
 تختار المنطقة ثم الطريق ثم الأرض، فيظهر popup فيه بيانات الأرض وطول كل ضلع والمساحة والمحيط، وتقدر تحفظ البيانات دي في ملف JSON.
 
+الخريطة معمولة بـ ArcGIS Maps SDK for JavaScript (نسخة 5.1، الـ component `<arcgis-map>`) ومتحملة من الـ CDN. الخريطة الأساسية من OpenStreetMap، فمش محتاجة API key.
+
 
 ## التشغيل
 
@@ -41,14 +43,16 @@ python -m http.server 8080
 
 ```
 index.html
-css/style.css
+css/
+  style.css        تنسيق الصفحة
+  popup.css        تنسيق محتوى الـ popup، بيتحمل جوه الـ shadow DOM بتاع الخريطة
 js/
   main.js          نقطة البداية، بيربط الخطوات ببعض
   config.js        رابط الخدمة وأرقام الطبقات والحقول اللي بتظهر في الـ popup
   api.js           استعلامات ArcGIS REST
   projection.js    التحويل بين NZTM2000 و WGS84
   geometry.js      حساب الأضلاع والمحيط والمساحة
-  mapView.js       الرسم على الخريطة (Leaflet)
+  mapView.js       الرسم على الخريطة (ArcGIS Maps SDK)
   popup.js         محتوى الـ popup وتنسيق الأرقام
   autocomplete.js  القائمة المنسدلة مع البحث
   exporter.js      حفظ ملف JSON
@@ -64,7 +68,7 @@ js/
 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs
 ```
 
-أما Leaflet فبيستقبل lat/lng بالدرجات (WGS84 / EPSG:4326) وبيعرض الخريطة بـ Web Mercator (EPSG:3857).
+أما الخريطة فبنديها lat/lng بالدرجات (WGS84 / EPSG:4326)، وهي بتعرض بـ Web Mercator (EPSG:3857).
 
 علشان كده كل الاستعلامات بتطلب `outSR=2193`، والحسابات كلها بتتم بالمتر مباشرة: طول الضلع بفيثاغورس، والمساحة بطريقة Shoelace. النتايج بتطابق `SHAPE.STArea()` و `SHAPE.STLength()` اللي راجعين من الخدمة.
 

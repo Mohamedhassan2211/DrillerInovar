@@ -129,65 +129,23 @@ body {
 
 #map {
   flex: 1;
-  direction: ltr;
 }
 
-.side-label span {
-  display: inline-block;
-  transform: translate(-50%, -50%);
-  padding: 1px 4px;
-  font-size: 11px;
+.map-tooltip {
+  position: absolute;
+  padding: 4px 8px;
+  font-size: 12px;
   white-space: nowrap;
-  color: var(--danger);
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--danger);
+  color: #222;
+  background: #fff;
   border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transform: translate(12px, -50%);
 }
 
-.land-popup {
-  direction: rtl;
-  min-width: 280px;
-  font-size: 12px;
-}
-
-.land-popup h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
-}
-
-.land-popup h4 {
-  margin: 12px 0 4px;
-  font-size: 13px;
-  color: var(--accent);
-}
-
-.land-popup p {
-  margin: 0;
-}
-
-.land-popup table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.land-popup th,
-.land-popup td {
-  padding: 3px 6px;
-  border: 1px solid #e1e5e9;
-  text-align: right;
-  vertical-align: top;
-}
-
-.land-popup th {
-  width: 40%;
-  font-weight: normal;
-  color: var(--muted);
-  background: var(--panel);
-}
-
-.address-popup {
-  font-size: 12px;
-  line-height: 1.6;
+.map-tooltip.left {
+  transform: translate(calc(-100% - 12px), -50%);
 }
 
 @media (max-width: 700px) {

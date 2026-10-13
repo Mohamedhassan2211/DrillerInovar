@@ -1,5 +1,5 @@
 // The service data and all measurements use EPSG:2193 (NZTM2000): projected, x/y in meters.
-// Leaflet expects EPSG:4326 (WGS84): geographic, lat/lng in degrees.
+// The map is given EPSG:4326 (WGS84): geographic, lat/lng in degrees. It shows them in Web Mercator.
 
 proj4.defs(
   'EPSG:2193',

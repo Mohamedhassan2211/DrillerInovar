@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Otago Property Explorer</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <script type="module" src="https://js.arcgis.com/5.1/"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -35,9 +35,11 @@
     <p id="status" class="status"></p>
   </aside>
 
-  <div id="map"></div>
+  <arcgis-map id="map" dir="ltr" popup-disabled>
+    <arcgis-zoom slot="top-left"></arcgis-zoom>
+    <arcgis-scale-bar slot="bottom-left" unit="metric"></arcgis-scale-bar>
+  </arcgis-map>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
