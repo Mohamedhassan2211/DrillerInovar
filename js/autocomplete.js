@@ -56,7 +56,6 @@ export class Autocomplete {
     this.list.hidden = true;
   }
 
-  // Also called from code, e.g. when the user clicks the feature on the map
   select(item) {
     if (!item) return;
     this.selected = item;

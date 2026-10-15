@@ -30,7 +30,7 @@ const landInput = new Autocomplete(
 const addressInput = new Autocomplete(
   document.getElementById('address'),
   address => address.label,
-  mapView.focusAddress
+  mapView.showAddress
 );
 
 saveButton.addEventListener('click', saveLand);
@@ -58,7 +58,7 @@ async function selectArea(area) {
     if (state.area !== area) return; // another area was picked while loading
 
     roadInput.setItems(roads);
-    mapView.showRoads(roads, road => roadInput.select(road));
+    mapView.showArea(roads);
     setStatus(roads.length ? `${roads.length} طريق في ${area.name}.` : `لا توجد طرق مسجلة في ${area.name}.`);
   } catch (error) {
     showError(error);
@@ -69,7 +69,7 @@ async function selectArea(area) {
 async function selectRoad(road) {
   state.road = road;
   resetFrom(3);
-  mapView.highlightRoad(road);
+  mapView.showRoad(road);
   setStatus(`جاري البحث عن العقارات على ${road.name}...`);
 
   try {
@@ -77,8 +77,7 @@ async function selectRoad(road) {
     if (state.road !== road) return;
 
     landInput.setItems(lands);
-    mapView.showLands(lands, land => landInput.select(land));
-    setStatus(`${lands.length} عقار وقطعة على الطريق. اختر من القائمة أو اضغط على الخريطة.`);
+    setStatus(`${lands.length} عقار وقطعة على الطريق. اختر من القائمة.`);
   } catch (error) {
     showError(error);
   }
@@ -97,7 +96,7 @@ async function selectLand(land) {
     state.measurement = measureLand(land.rings);
     state.addresses = addresses;
     addressInput.setItems(addresses);
-    mapView.showSelectedLand(land, state.measurement, addresses);
+    mapView.showLand(land, state.measurement, addresses);
     saveButton.disabled = false;
     setStatus(`عدد الأضلاع ${state.measurement.sides.length}، وعدد العناوين داخل الأرض ${addresses.length}.`);
   } catch (error) {
@@ -116,16 +115,16 @@ function resetFrom(level) {
   if (level <= 2) {
     state.road = null;
     roadInput.setItems([]);
-    mapView.clear('roads');
+    mapView.clear('road');
   }
   if (level <= 3) {
     landInput.setItems([]);
-    mapView.clear('lands');
   }
 
   state.land = null;
   addressInput.setItems([]);
-  mapView.clear('selection');
+  mapView.clear('land');
+  mapView.clear('address');
   saveButton.disabled = true;
 }
 

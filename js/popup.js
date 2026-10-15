@@ -1,7 +1,7 @@
 import { LAND_TYPES, POPUP_FIELDS } from './config.js';
 import { toLatLng } from './projection.js';
 
-export function escapeHtml(value) {
+function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

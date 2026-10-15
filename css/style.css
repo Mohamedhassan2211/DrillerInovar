@@ -131,23 +131,6 @@ body {
   flex: 1;
 }
 
-.map-tooltip {
-  position: absolute;
-  padding: 4px 8px;
-  font-size: 12px;
-  white-space: nowrap;
-  color: #222;
-  background: #fff;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
-  transform: translate(12px, -50%);
-}
-
-.map-tooltip.left {
-  transform: translate(calc(-100% - 12px), -50%);
-}
-
 @media (max-width: 700px) {
   body {
     flex-direction: column;
