@@ -1,0 +1,14 @@
+{
+  // Saving writes backend/Data/lands.json and Visual Studio builds into backend/bin,
+  // so Live Server ignores backend/ (the rest is its default list) or it would reload the page
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.ts",
+    "node_modules/**",
+    "venv/**",
+    ".venv/**",
+    "backend/**"
+  ]
+}
