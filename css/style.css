@@ -1,12 +1,3 @@
-:root {
-  --text: #1f2a33;
-  --muted: #5f6b76;
-  --border: #d0d7de;
-  --panel: #f5f7f9;
-  --accent: #1f6fb2;
-  --danger: #c0392b;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -20,18 +11,16 @@ body {
 body {
   display: flex;
   font-family: Tahoma, Arial, sans-serif;
-  color: var(--text);
+  color: #1f2a33;
 }
-
-/* Sidebar */
 
 .sidebar {
   width: 320px;
   flex-shrink: 0;
   padding: 16px;
   overflow-y: auto;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
+  background: #f5f7f9;
+  border-left: 1px solid #d0d7de;
 }
 
 .sidebar h1 {
@@ -39,93 +28,20 @@ body {
   font-size: 18px;
 }
 
-.field {
-  margin-bottom: 14px;
+#pick-land {
+  margin-bottom: 18px;
 }
 
-.field label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-#save-json {
-  width: 100%;
-  padding: 9px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-#save-json:disabled {
-  background: #aab4bd;
-  cursor: not-allowed;
-}
-
-.status {
+#status {
   margin: 12px 0;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--muted);
+  color: #5f6b76;
 }
 
-.status.error {
-  color: var(--danger);
+#status.error {
+  color: #c0392b;
 }
-
-/* Autocomplete */
-
-.autocomplete {
-  position: relative;
-}
-
-.autocomplete input {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
-  font-size: 14px;
-}
-
-.autocomplete input:disabled {
-  background: #eceff1;
-  cursor: not-allowed;
-}
-
-.autocomplete-list {
-  position: absolute;
-  top: calc(100% + 2px);
-  right: 0;
-  left: 0;
-  z-index: 1000;
-  max-height: 260px;
-  margin: 0;
-  padding: 4px 0;
-  overflow-y: auto;
-  list-style: none;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.autocomplete-list li {
-  padding: 6px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.autocomplete-list li:hover {
-  background: #e7f0f8;
-}
-
-/* Map */
 
 #map {
   flex: 1;
@@ -140,6 +56,6 @@ body {
     width: 100%;
     max-height: 45vh;
     border-left: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid #d0d7de;
   }
 }

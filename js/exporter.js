@@ -1,14 +1,14 @@
-import { SERVICE_WKID } from './config.js';
-import { toLatLng } from './projection.js';
+import { NZTM, API_URL } from './config.js';
+import { toWgs84 } from './geometry.js';
 
 const round = (value, digits = 2) => Number(value.toFixed(digits));
 const roundPoint = ([x, y]) => [round(x, 3), round(y, 3)];
 
 function inBothSystems(point) {
-  const [lat, lng] = toLatLng(point);
+  const { latitude, longitude } = toWgs84(point);
   return {
-    nztm: { x: round(point[0], 3), y: round(point[1], 3) },
-    wgs84: { lat: round(lat, 7), lng: round(lng, 7) },
+    nztm: { x: round(point.x, 3), y: round(point.y, 3) },
+    wgs84: { lat: round(latitude, 7), lng: round(longitude, 7) },
   };
 }
 
@@ -16,12 +16,14 @@ export function buildLandRecord({ area, road, land, measurement, addresses }) {
   return {
     savedAt: new Date().toISOString(),
     spatialReference: {
-      wkid: SERVICE_WKID,
+      wkid: NZTM.wkid,
       name: 'NZGD2000 / New Zealand Transverse Mercator 2000',
       units: 'meters',
     },
-    area: area.name,
-    road: road.name,
+    // A land picked on the map has no area when its road's locality is not in the area list,
+    // and no road either when none is near it (locate.js)
+    area: area?.name ?? null,
+    road: road?.name ?? null,
     land: {
       type: land.type,
       objectId: land.id,
@@ -45,14 +47,24 @@ export function buildLandRecord({ area, road, land, measurement, addresses }) {
       address: address.label,
       ...inBothSystems(address.point),
     })),
-    geometry: { rings: land.rings.map(ring => ring.map(roundPoint)) },
+    geometry: { rings: land.geometry.rings.map(ring => ring.map(roundPoint)) },
   };
 }
 
-export function downloadJson(data, fileName) {
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  link.download = fileName;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+// Adds the record to backend/Data/lands.json through the API. Returns { count }, the number of saved lands.
+export async function saveLandRecord(record) {
+  let response;
+  try {
+    response = await fetch(`${API_URL}/lands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record),
+    });
+  } catch {
+    // fetch fails without a response when nothing is listening, i.e. the API is not running
+    throw new Error('تعذر الاتصال بالـ API. شغّل مشروع الباك اند من Visual Studio ثم احفظ مرة أخرى.');
+  }
+
+  if (!response.ok) throw new Error(`الـ API رد بخطأ ${response.status}`);
+  return response.json();
 }

@@ -1,18 +1,16 @@
-import { OTAGO_EXTENT } from './config.js';
-import { toLatLng } from './projection.js';
-import { landPopupHtml, addressPopupHtml } from './popup.js';
+import { SERVICE_URL, LAYERS, NZTM, OTAGO_EXTENT } from './config.js';
+import { landPopup, addressPopup } from './popup.js';
 
-const [ArcGISMap, Basemap, Graphic, GraphicsLayer, WebTileLayer, Extent, promiseUtils] = await $arcgis.import([
+const [ArcGISMap, Graphic, GraphicsLayer, FeatureLayer, WebTileLayer] = await $arcgis.import([
   '@arcgis/core/Map.js',
-  '@arcgis/core/Basemap.js',
   '@arcgis/core/Graphic.js',
   '@arcgis/core/layers/GraphicsLayer.js',
+  '@arcgis/core/layers/FeatureLayer.js',
   '@arcgis/core/layers/WebTileLayer.js',
-  '@arcgis/core/geometry/Extent.js',
-  '@arcgis/core/core/promiseUtils.js',
 ]);
 
 const STYLE = {
+  boundary: { type: 'simple-fill', color: [0, 0, 0, 0], outline: { color: '#1e8449', width: '1px' } },
   road: { type: 'simple-line', color: '#1f6fb2', width: '6px' },
   land: { type: 'simple-fill', color: [192, 57, 43, 0.25], outline: { color: '#c0392b', width: '3px' } },
   address: { type: 'simple-marker', size: '14px', color: [165, 105, 189, 0.9], outline: { color: '#6c3483', width: '2px' } },
@@ -26,112 +24,53 @@ const STYLE = {
   },
 };
 
-// Space kept between an open popup and the map edge, in pixels
-const AUTO_PAN_PADDING = 5;
-
-// The map draws popups inside its shadow DOM, which style.css doesn't reach, so their content adopts popup.css
-const popupStyles = new CSSStyleSheet();
-fetch(new URL('../css/popup.css', import.meta.url))
-  .then(response => response.text())
-  .then(css => popupStyles.replaceSync(css))
-  .catch(console.error);
-
 // The map draws only what is picked from the lists
 const layers = {
-  road: new GraphicsLayer({ id: 'road' }),
-  land: new GraphicsLayer({ id: 'land' }),
-  address: new GraphicsLayer({ id: 'address' }),
+  road: new GraphicsLayer(),
+  land: new GraphicsLayer(),
+  address: new GraphicsLayer(),
 };
+
+// Property boundaries from the service, shown only while picking a land on the map.
+// They draw from about 1:10,000, where lands are big enough to click.
+const boundaries = new FeatureLayer({
+  url: `${SERVICE_URL}/${LAYERS.properties}`,
+  renderer: { type: 'simple', symbol: STYLE.boundary },
+  minScale: 10000,
+  visible: false,
+  popupEnabled: false,
+});
+
+const osm = new WebTileLayer({
+  urlTemplate: 'https://tile.openstreetmap.org/{level}/{col}/{row}.png',
+  copyright: '© OpenStreetMap contributors | LINZ, ORC',
+});
 
 const mapElement = document.getElementById('map');
 
 mapElement.map = new ArcGISMap({
-  basemap: new Basemap({
-    baseLayers: [
-      new WebTileLayer({
-        urlTemplate: 'https://tile.openstreetmap.org/{level}/{col}/{row}.png',
-        copyright: '© OpenStreetMap | LINZ, ORC',
-      }),
-    ],
-  }),
-  layers: [layers.road, layers.land, layers.address],
+  basemap: { baseLayers: [osm] },
+  layers: [boundaries, layers.road, layers.land, layers.address],
 });
+mapElement.extent = OTAGO_EXTENT;
 mapElement.constraints = { maxZoom: 19, rotationEnabled: false };
-
-const [south, west] = toLatLng([OTAGO_EXTENT.xmin, OTAGO_EXTENT.ymin]);
-const [north, east] = toLatLng([OTAGO_EXTENT.xmax, OTAGO_EXTENT.ymax]);
-mapElement.extent = new Extent({ xmin: west, ymin: south, xmax: east, ymax: north });
 
 await mapElement.viewOnReady();
 
-// Popups open above their anchor (panToPopup() makes room for them) and have only a close button
-mapElement.popup = {
-  alignment: 'top-center',
-  dockOptions: { buttonEnabled: false },
-  visibleElements: { actionBar: false },
-};
+// Keep the popup docked in the corner, so it doesn't cover the land and its side labels
+mapElement.popupElement.dockEnabled = true;
+mapElement.popupElement.dockOptions = { breakpoint: false, buttonEnabled: false, position: 'top-right' };
 
-// The map's own popup handling is off (popup-disabled in index.html), so a click on the map just closes the popup
-mapElement.addEventListener('arcgisViewClick', () => mapElement.closePopup());
+// Set by setPicking() while the user picks a land on the map
+let onPick = null;
 
-// Service geometry is in NZTM meters; the map takes WGS84 lng/lat and projects it to Web Mercator itself
-const toLngLat = point => toLatLng(point).reverse();
-const toPolyline = paths => ({ type: 'polyline', paths: paths.map(path => path.map(toLngLat)) });
-const toPolygon = rings => ({ type: 'polygon', rings: rings.map(ring => ring.map(toLngLat)) });
+mapElement.addEventListener('arcgisViewClick', event => {
+  if (onPick) onPick(event.detail.mapPoint);
+});
 
-function toPoint(point) {
-  const [latitude, longitude] = toLatLng(point);
-  return { type: 'point', latitude, longitude };
-}
-
-// goTo() and openPopup() reject with an AbortError when a newer call replaces them
-function ignoreAbort(error) {
-  if (!promiseUtils.isAbortError(error)) console.error(error);
-}
-
-function addGraphic(layer, geometry, symbol) {
-  const graphic = new Graphic({ geometry, symbol });
-  layer.add(graphic);
-  return graphic;
-}
-
+// goTo() fails when a newer goTo() interrupts it, which is fine here
 function goTo(target) {
-  return mapElement.goTo(target).catch(ignoreAbort);
-}
-
-async function openPopup(html, location) {
-  const content = document.createElement('div');
-  const root = content.attachShadow({ mode: 'open' });
-  root.adoptedStyleSheets = [popupStyles];
-  root.innerHTML = html;
-
-  try {
-    await mapElement.openPopup({ content, location });
-    await new Promise(requestAnimationFrame); // let the popup lay out before measuring it
-    panToPopup();
-  } catch (error) {
-    ignoreAbort(error);
-  }
-}
-
-// Pans the map until the open popup fits inside it
-function panToPopup() {
-  const { popup } = mapElement;
-  if (!popup.visible || popup.currentDockPosition) return; // a docked popup doesn't point at the map
-  const box = popup.container.getBoundingClientRect();
-  const view = mapElement.getBoundingClientRect();
-
-  let dx = Math.max(box.right + AUTO_PAN_PADDING - view.right, 0);
-  if (box.left - dx - AUTO_PAN_PADDING < view.left) dx = box.left - AUTO_PAN_PADDING - view.left;
-  let dy = Math.max(box.bottom + AUTO_PAN_PADDING - view.bottom, 0);
-  if (box.top - dy - AUTO_PAN_PADDING < view.top) dy = box.top - AUTO_PAN_PADDING - view.top;
-  if (!dx && !dy) return;
-
-  // goTo() pans only to a Point instance, not a plain object. Screen y grows downward and map y northward.
-  const center = mapElement.center.clone();
-  center.x += dx * mapElement.resolution;
-  center.y -= dy * mapElement.resolution;
-  goTo(center);
+  mapElement.goTo(target).catch(() => {});
 }
 
 export function clear(name) {
@@ -141,38 +80,49 @@ export function clear(name) {
 
 // The service has no area boundaries, so the map zooms to the area's roads without drawing them
 export function showArea(roads) {
-  if (roads.length) goTo(new Graphic({ geometry: toPolyline(roads.flatMap(road => road.paths)) }));
+  if (roads.length) goTo(roads.map(road => road.geometry));
 }
 
 export function showRoad(road) {
   layers.road.removeAll();
-  goTo(addGraphic(layers.road, toPolyline(road.paths), STYLE.road));
+  const graphic = new Graphic({ geometry: road.geometry, symbol: STYLE.road });
+  layers.road.add(graphic);
+  goTo(graphic);
 }
 
-// Draws the land with a length label on every side, then opens its popup
+// Draws the land with the length of every side, then opens its popup
 export function showLand(land, measurement, addresses) {
-  const polygon = addGraphic(layers.land, toPolygon(land.rings), STYLE.land);
+  const graphic = new Graphic({
+    geometry: land.geometry,
+    symbol: STYLE.land,
+    ...landPopup(land, measurement, addresses),
+  });
+  layers.land.add(graphic);
 
   measurement.sides.forEach((side, i) => {
-    const middle = [(side.from[0] + side.to[0]) / 2, (side.from[1] + side.to[1]) / 2];
-    addGraphic(layers.land, toPoint(middle), { ...STYLE.sideLabel, text: `${i + 1} ${side.length.toFixed(2)} m` });
+    const x = (side.from[0] + side.to[0]) / 2;
+    const y = (side.from[1] + side.to[1]) / 2;
+    layers.land.add(new Graphic({
+      geometry: { type: 'point', x, y, spatialReference: NZTM },
+      symbol: { ...STYLE.sideLabel, text: `${i + 1} ${side.length.toFixed(2)} m` },
+    }));
   });
 
-  // Open the popup on the top edge so it doesn't cover the side labels.
-  // Wait for the zoom to finish, or the popup is placed against the old view.
-  // The margin around the land leaves room for the side labels.
-  const { extent } = polygon.geometry;
-  const top = extent.center.clone();
-  top.y = extent.ymax;
-  goTo(extent.clone().expand(1.5)).then(() => {
-    if (polygon.layer) openPopup(landPopupHtml(land, measurement, addresses), top); // the land is still selected
-  });
+  goTo(land.geometry.extent.clone().expand(1.5)); // the margin leaves room for the side labels
+  mapElement.openPopup({ features: [graphic] });
 }
 
 export function showAddress(address) {
   layers.address.removeAll();
-  const point = addGraphic(layers.address, toPoint(address.point), STYLE.address);
-  goTo({ target: point, zoom: 19 }).then(() => {
-    if (point.layer) openPopup(addressPopupHtml(address), point.geometry); // the address is still selected
-  });
+  const graphic = new Graphic({ geometry: address.point, symbol: STYLE.address, ...addressPopup(address) });
+  layers.address.add(graphic);
+  goTo({ target: graphic, zoom: 19 });
+  mapElement.openPopup({ features: [graphic] });
+}
+
+// Picking a land on the map: pass the function that gets the clicked point, or null to stop
+export function setPicking(handler) {
+  onPick = handler;
+  boundaries.visible = handler !== null;
+  mapElement.style.cursor = handler ? 'crosshair' : '';
 }

@@ -1,78 +1,68 @@
 import { LAND_TYPES, POPUP_FIELDS } from './config.js';
-import { toLatLng } from './projection.js';
+import { toWgs84 } from './geometry.js';
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+// Unicode isolate marks work like dir="auto": English addresses and coordinates
+// keep their order inside the Arabic popup
+const isolate = text => `\u2068${text}\u2069`;
 
 const formatNumber = (value, digits = 2) =>
   value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-const row = (label, value) => `<tr><th>${label}</th><td dir="auto">${value}</td></tr>`;
-
-// A service point (NZTM meters) written in each system
-const formatNztm = ([x, y]) => `E ${x.toFixed(2)} / N ${y.toFixed(2)}`;
+const formatNztm = point => `E ${point.x.toFixed(2)} / N ${point.y.toFixed(2)}`;
 
 function formatWgs84(point) {
-  const [lat, lng] = toLatLng(point);
-  return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  const { latitude, longitude } = toWgs84(point);
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
 }
 
-export function landPopupHtml(land, measurement, addresses) {
+// Builds a popup out of sections of [label, value] rows. Each section is shown as a table.
+// The popup tables read their values from the graphic's attributes, so every row gets one.
+function popup(title, sections) {
+  const attributes = {};
+  const content = sections.map(([sectionTitle, rows]) => ({
+    type: 'fields',
+    title: sectionTitle,
+    fieldInfos: rows.map(([label, value]) => {
+      const fieldName = `row${Object.keys(attributes).length}`;
+      attributes[fieldName] = isolate(value);
+      return { fieldName, label };
+    }),
+  }));
+  return { attributes, popupTemplate: { title, content } };
+}
+
+export function landPopup(land, measurement, addresses) {
   const info = Object.entries(POPUP_FIELDS[land.type])
     .filter(([field]) => (land.attributes[field] ?? '') !== '')
     .map(([field, label]) => {
       const value = land.attributes[field];
-      return row(label, typeof value === 'number' ? value.toLocaleString('en-US') : escapeHtml(value));
-    })
-    .join('');
+      return [label, typeof value === 'number' ? value.toLocaleString('en-US') : value];
+    });
 
-  const sides = measurement.sides
-    .map((side, i) => `<tr><td>${i + 1}</td><td>${formatNumber(side.length)} م</td></tr>`)
-    .join('');
+  const addressRows = addresses.length
+    ? addresses.map(address => ['العنوان', address.label])
+    : [['العنوان', 'لا يوجد عنوان مسجل داخل الأرض']];
 
-  const addressText = addresses.length
-    ? addresses.map(address => escapeHtml(address.label)).join('<br>')
-    : 'لا يوجد عنوان مسجل داخل الأرض';
-
-  return `
-    <div class="land-popup">
-      <h3>${LAND_TYPES[land.type]}: <bdi>${escapeHtml(land.label)}</bdi></h3>
-      <table>${info}</table>
-
-      <h4>القياسات</h4>
-      <table>
-        ${row('المساحة', `${formatNumber(measurement.area)} م² (${formatNumber(measurement.area / 10000, 4)} هكتار)`)}
-        ${row('المحيط', `${formatNumber(measurement.perimeter)} م`)}
-        ${row('عدد الأضلاع', measurement.sides.length)}
-      </table>
-
-      <h4>أطوال الأضلاع</h4>
-      <table>
-        <tr><th>الضلع</th><th>الطول</th></tr>
-        ${sides}
-      </table>
-
-      <h4>العنوان</h4>
-      <p dir="auto">${addressText}</p>
-
-      <h4>الموقع (منتصف الأرض)</h4>
-      <table>
-        ${row('NZTM2000', formatNztm(measurement.center))}
-        ${row('WGS84', formatWgs84(measurement.center))}
-      </table>
-    </div>`;
+  return popup(`${LAND_TYPES[land.type]}: ${isolate(land.label)}`, [
+    [null, [...addressRows, ...info]],
+    ['القياسات', [
+      ['المساحة', `${formatNumber(measurement.area)} م² (${formatNumber(measurement.area / 10000, 4)} هكتار)`],
+      ['المحيط', `${formatNumber(measurement.perimeter)} م`],
+      ['عدد الأضلاع', measurement.sides.length],
+    ]],
+    ['أطوال الأضلاع', measurement.sides.map((side, i) => [`الضلع ${i + 1}`, `${formatNumber(side.length)} م`])],
+    ['الموقع (منتصف الأرض)', [
+      ['NZTM2000', formatNztm(measurement.center)],
+      ['WGS84', formatWgs84(measurement.center)],
+    ]],
+  ]);
 }
 
-export function addressPopupHtml(address) {
-  return `
-    <div class="address-popup">
-      <b>${escapeHtml(address.label)}</b><br>
-      NZTM: ${formatNztm(address.point)}<br>
-      WGS84: ${formatWgs84(address.point)}
-    </div>`;
+export function addressPopup(address) {
+  return popup(isolate(address.label), [
+    [null, [
+      ['NZTM2000', formatNztm(address.point)],
+      ['WGS84', formatWgs84(address.point)],
+    ]],
+  ]);
 }

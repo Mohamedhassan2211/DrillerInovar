@@ -1,48 +1,39 @@
-import { SERVICE_URL, SERVICE_WKID, LAYERS, ROAD_BUFFER_M } from './config.js';
+import { SERVICE_URL, LAYERS, NZTM, ROAD_BUFFER_M, ROAD_SEARCH_M } from './config.js';
 
-// The server returns at most 1000 records per request, so keep paging until everything is loaded
-async function query(layerId, params) {
-  const features = [];
-  while (true) {
-    const body = new URLSearchParams({
-      f: 'json',
-      where: '1=1',
-      outFields: '*',
-      outSR: SERVICE_WKID,
-      ...params,
-      resultOffset: features.length,
-    });
+const [{ executeForIds, executeQueryJSON }, Polyline] = await $arcgis.import([
+  '@arcgis/core/rest/query.js',
+  '@arcgis/core/geometry/Polyline.js',
+]);
 
-    const response = await fetch(`${SERVICE_URL}/${layerId}/query`, { method: 'POST', body });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+// The server returns at most 1000 features per request, and its paging doesn't work with distance
+// queries (a long road can have more than 1000 lands). So ask for the ids of all the matching
+// features first, which has no limit, then load the features 1000 at a time.
+async function query(layerId, { outFields = ['*'], ...filter }) {
+  const url = `${SERVICE_URL}/${layerId}`;
+  const ids = await executeForIds(url, filter);
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || `Query failed on layer ${layerId}`);
-
-    features.push(...data.features);
-    if (!data.exceededTransferLimit || data.features.length === 0) return features;
+  const batches = [];
+  for (let i = 0; i < ids.length; i += 1000) {
+    batches.push(executeQueryJSON(url, {
+      objectIds: ids.slice(i, i + 1000),
+      outFields,
+      returnGeometry: true,
+      outSpatialReference: NZTM,
+    }));
   }
+  const results = await Promise.all(batches);
+  return results.flatMap(result => result.features);
 }
 
-function spatialFilter(geometry, geometryType) {
-  return {
-    geometry: JSON.stringify(geometry),
-    geometryType,
-    inSR: SERVICE_WKID,
-    spatialRel: 'esriSpatialRelIntersects',
-  };
-}
+const sqlText = value => `'${value.replace(/'/g, "''")}'`;
 
-const sqlText = value => `'${String(value).replace(/'/g, "''")}'`;
-
-// Level 1: suburbs / localities of Otago, taken from the address layer
+// Level 1: suburbs and localities, taken from the addresses. There are about 430, so one request is enough.
 export async function getAreas() {
-  const features = await query(LAYERS.addresses, {
+  const { features } = await executeQueryJSON(`${SERVICE_URL}/${LAYERS.addresses}`, {
     where: 'suburb_locality IS NOT NULL',
-    outFields: 'suburb_locality,town_city',
+    outFields: ['suburb_locality', 'town_city'],
     returnDistinctValues: true,
-    returnGeometry: false,
-    orderByFields: 'suburb_locality',
+    orderByFields: ['suburb_locality'],
   });
 
   return features.map(({ attributes }) => ({
@@ -51,9 +42,9 @@ export async function getAreas() {
   }));
 }
 
-// Level 2: roads inside the area.
-// A road on the boundary of two suburbs has both names in `locality`, e.g. "Maryhill-Mornington".
-// A road is stored as several segments, so they are merged to list each name once.
+// Level 2: roads of the area.
+// A road on the boundary of two areas has both names in `locality`, e.g. "Maryhill-Mornington".
+// A road is stored as several segments, so they are joined into one line per name.
 export async function getRoads(area) {
   const where = [
     `locality = ${sqlText(area.name)}`,
@@ -61,28 +52,34 @@ export async function getRoads(area) {
     `locality LIKE ${sqlText(`%-${area.name}`)}`,
   ].join(' OR ');
 
-  const features = await query(LAYERS.roads, { where, outFields: 'name' });
+  const features = await query(LAYERS.roads, { where, outFields: ['name'] });
 
-  const roads = new Map();
+  const paths = new Map();
   for (const { attributes, geometry } of features) {
     if (!attributes.name) continue;
-    if (!roads.has(attributes.name)) roads.set(attributes.name, { name: attributes.name, paths: [] });
-    roads.get(attributes.name).paths.push(...geometry.paths);
+    if (!paths.has(attributes.name)) paths.set(attributes.name, []);
+    paths.get(attributes.name).push(...geometry.paths);
   }
-  return [...roads.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  return [...paths.keys()]
+    .sort((a, b) => a.localeCompare(b))
+    .map(name => ({ name, geometry: new Polyline({ paths: paths.get(name), spatialReference: NZTM }) }));
 }
 
-// Level 3: properties (layer 0) and parcels (layer 1) within ROAD_BUFFER_M of the road
-export async function getLandsAlongRoad(road) {
-  const filter = {
-    ...spatialFilter({ paths: road.paths }, 'esriGeometryPolyline'),
-    distance: ROAD_BUFFER_M,
-    units: 'esriSRUnit_Meter',
-  };
+// Level 3: lands within ROAD_BUFFER_M of the road
+export function getLandsAlongRoad(road) {
+  return getLands({ geometry: road.geometry, distance: ROAD_BUFFER_M, units: 'meters' });
+}
 
+// Picking on the map: lands under the clicked point
+export function getLandsAt(point) {
+  return getLands({ geometry: point });
+}
+
+// Properties first, then parcels. The road reserve is a parcel too, so it is left out.
+async function getLands(filter) {
   const [properties, parcels] = await Promise.all([
     query(LAYERS.properties, filter),
-    // The road reserve is a parcel too, so leave it out
     query(LAYERS.parcels, { ...filter, where: "parcel_intent <> 'Road'" }),
   ]);
 
@@ -102,19 +99,41 @@ function toLand({ attributes: a, geometry }, type) {
   } else {
     label = a.appellation || `Parcel ${a.id}`;
   }
-  return { type, id: a.OBJECTID, label, attributes: a, rings: geometry.rings };
+  return { type, id: a.OBJECTID, label, attributes: a, geometry };
 }
 
-// Level 4: address points that fall inside the land
+// Picking on the map: road segments around the land, which tell its road and area (locate.js)
+export async function getRoadsAround(land) {
+  for (const distance of ROAD_SEARCH_M) {
+    const features = await query(LAYERS.roads, {
+      where: 'name IS NOT NULL',
+      outFields: ['name', 'locality'],
+      geometry: land.geometry,
+      distance,
+      units: 'meters',
+    });
+
+    if (features.length) {
+      return features.map(({ attributes, geometry }) => ({
+        name: attributes.name,
+        locality: attributes.locality,
+        geometry,
+      }));
+    }
+  }
+  return [];
+}
+
+// Level 4: addresses inside the land
 export async function getAddressesInside(land) {
   const features = await query(LAYERS.addresses, {
-    outFields: 'address_id,full_address',
-    ...spatialFilter({ rings: land.rings }, 'esriGeometryPolygon'),
+    outFields: ['address_id', 'full_address'],
+    geometry: land.geometry,
   });
 
   return features.map(({ attributes, geometry }) => ({
     id: attributes.address_id,
     label: attributes.full_address,
-    point: [geometry.x, geometry.y],
+    point: geometry,
   }));
 }

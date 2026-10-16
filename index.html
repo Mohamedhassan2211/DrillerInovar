@@ -11,36 +11,39 @@
   <aside class="sidebar">
     <h1>Otago Property Explorer</h1>
 
-    <div class="field">
-      <label for="area">1. المنطقة / الحي</label>
-      <input id="area" type="text" dir="auto" placeholder="ابحث عن المنطقة" disabled>
-    </div>
+    <calcite-button id="pick-land" width="full">تحديد الأرض من الخريطة</calcite-button>
 
-    <div class="field">
-      <label for="road">2. الطريق</label>
-      <input id="road" type="text" dir="auto" placeholder="ابحث عن الطريق" disabled>
-    </div>
+    <!-- The lists are LTR because their data (names and addresses) is in English -->
+    <calcite-label>
+      1. المنطقة / الحي
+      <calcite-combobox id="area" dir="ltr" placeholder="ابحث عن المنطقة" selection-mode="single-persist" disabled></calcite-combobox>
+    </calcite-label>
 
-    <div class="field">
-      <label for="land">3. العقار / قطعة الأرض</label>
-      <input id="land" type="text" dir="auto" placeholder="ابحث عن العقار أو القطعة" disabled>
-    </div>
+    <calcite-label>
+      2. الطريق
+      <calcite-combobox id="road" dir="ltr" placeholder="ابحث عن الطريق" selection-mode="single-persist" disabled></calcite-combobox>
+    </calcite-label>
 
-    <div class="field">
-      <label for="address">4. العنوان</label>
-      <input id="address" type="text" dir="auto" placeholder="العناوين داخل الأرض" disabled>
-    </div>
+    <calcite-label>
+      3. العقار / قطعة الأرض
+      <calcite-combobox id="land" dir="ltr" placeholder="ابحث عن العقار أو القطعة" selection-mode="single-persist" disabled></calcite-combobox>
+    </calcite-label>
 
-    <button id="save-json" type="button" disabled>حفظ بيانات الأرض (JSON)</button>
-    <p id="status" class="status"></p>
+    <calcite-label>
+      4. العنوان
+      <calcite-combobox id="address" dir="ltr" placeholder="العناوين داخل الأرض" selection-mode="single-persist" disabled></calcite-combobox>
+    </calcite-label>
+
+    <calcite-button id="save-json" width="full" disabled>حفظ بيانات الأرض (JSON)</calcite-button>
+    <p id="status"></p>
   </aside>
 
-  <arcgis-map id="map" dir="ltr" popup-disabled>
+  <arcgis-map id="map" popup-component-enabled>
     <arcgis-zoom slot="top-left"></arcgis-zoom>
     <arcgis-scale-bar slot="bottom-left" unit="metric"></arcgis-scale-bar>
+    <arcgis-popup slot="popup" hide-action-bar highlight-disabled></arcgis-popup>
   </arcgis-map>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
