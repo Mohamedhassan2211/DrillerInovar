@@ -12,6 +12,8 @@ const [ArcGISMap, Graphic, GraphicsLayer, FeatureLayer, WebTileLayer] = await $a
 const STYLE = {
   boundary: { type: 'simple-fill', color: [0, 0, 0, 0], outline: { color: '#1e8449', width: '1px' } },
   road: { type: 'simple-line', color: '#1f6fb2', width: '6px' },
+  areaRoad: { type: 'simple-line', color: [31, 111, 178, 0.45], width: '3px' },
+  roadLand: { type: 'simple-fill', color: [243, 156, 18, 0.15], outline: { color: [243, 156, 18, 0.8], width: '1px' } },
   land: { type: 'simple-fill', color: [192, 57, 43, 0.25], outline: { color: '#c0392b', width: '3px' } },
   address: { type: 'simple-marker', size: '14px', color: [165, 105, 189, 0.9], outline: { color: '#6c3483', width: '2px' } },
   sideLabel: {
@@ -24,15 +26,14 @@ const STYLE = {
   },
 };
 
-// The map draws only what is picked from the lists
 const layers = {
+  areaRoads: new GraphicsLayer(),
+  roadLands: new GraphicsLayer(),
   road: new GraphicsLayer(),
   land: new GraphicsLayer(),
   address: new GraphicsLayer(),
 };
 
-// Property boundaries from the service, shown only while picking a land on the map.
-// They draw from about 1:10,000, where lands are big enough to click.
 const boundaries = new FeatureLayer({
   url: `${SERVICE_URL}/${LAYERS.properties}`,
   renderer: { type: 'simple', symbol: STYLE.boundary },
@@ -50,25 +51,22 @@ const mapElement = document.getElementById('map');
 
 mapElement.map = new ArcGISMap({
   basemap: { baseLayers: [osm] },
-  layers: [boundaries, layers.road, layers.land, layers.address],
+  layers: [boundaries, layers.roadLands, layers.areaRoads, layers.road, layers.land, layers.address],
 });
 mapElement.extent = OTAGO_EXTENT;
 mapElement.constraints = { maxZoom: 19, rotationEnabled: false };
 
 await mapElement.viewOnReady();
 
-// Keep the popup docked in the corner, so it doesn't cover the land and its side labels
 mapElement.popupElement.dockEnabled = true;
 mapElement.popupElement.dockOptions = { breakpoint: false, buttonEnabled: false, position: 'top-right' };
 
-// Set by setPicking() while the user picks a land on the map
 let onPick = null;
 
 mapElement.addEventListener('arcgisViewClick', event => {
   if (onPick) onPick(event.detail.mapPoint);
 });
 
-// goTo() fails when a newer goTo() interrupts it, which is fine here
 function goTo(target) {
   mapElement.goTo(target).catch(() => {});
 }
@@ -78,9 +76,13 @@ export function clear(name) {
   mapElement.closePopup();
 }
 
-// The service has no area boundaries, so the map zooms to the area's roads without drawing them
 export function showArea(roads) {
+  layers.areaRoads.addMany(roads.map(road => new Graphic({ geometry: road.geometry, symbol: STYLE.areaRoad })));
   if (roads.length) goTo(roads.map(road => road.geometry));
+}
+
+export function showRoadLands(lands) {
+  layers.roadLands.addMany(lands.map(land => new Graphic({ geometry: land.geometry, symbol: STYLE.roadLand })));
 }
 
 export function showRoad(road) {
@@ -90,7 +92,6 @@ export function showRoad(road) {
   goTo(graphic);
 }
 
-// Draws the land with the length of every side, then opens its popup
 export function showLand(land, measurement, addresses) {
   const graphic = new Graphic({
     geometry: land.geometry,
@@ -108,7 +109,7 @@ export function showLand(land, measurement, addresses) {
     }));
   });
 
-  goTo(land.geometry.extent.clone().expand(1.5)); // the margin leaves room for the side labels
+  goTo(land.geometry.extent.clone().expand(1.5));
   mapElement.openPopup({ features: [graphic] });
 }
 
@@ -120,7 +121,6 @@ export function showAddress(address) {
   mapElement.openPopup({ features: [graphic] });
 }
 
-// Picking a land on the map: pass the function that gets the clicked point, or null to stop
 export function setPicking(handler) {
   onPick = handler;
   boundaries.visible = handler !== null;

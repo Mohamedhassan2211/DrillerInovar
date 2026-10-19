@@ -9,10 +9,8 @@ namespace OtagoApi.Controllers;
 [Route("api/lands")]
 public class LandsController : ControllerBase
 {
-    // One lock for all requests, so two saves at the same time don't overwrite each other
     private static readonly object FileLock = new();
 
-    // Indented, and characters like & and ā are written as they are, so the file is easy to read
     private static readonly JsonSerializerOptions FileOptions = new()
     {
         WriteIndented = true,
@@ -21,7 +19,6 @@ public class LandsController : ControllerBase
 
     private readonly string _filePath;
 
-    // Visual Studio runs the project from its folder, so this is backend/Data/lands.json
     public LandsController(IWebHostEnvironment env)
     {
         _filePath = Path.Combine(env.ContentRootPath, "Data", "lands.json");

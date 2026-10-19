@@ -5,9 +5,6 @@ const [{ executeForIds, executeQueryJSON }, Polyline] = await $arcgis.import([
   '@arcgis/core/geometry/Polyline.js',
 ]);
 
-// The server returns at most 1000 features per request, and its paging doesn't work with distance
-// queries (a long road can have more than 1000 lands). So ask for the ids of all the matching
-// features first, which has no limit, then load the features 1000 at a time.
 async function query(layerId, { outFields = ['*'], ...filter }) {
   const url = `${SERVICE_URL}/${layerId}`;
   const ids = await executeForIds(url, filter);
@@ -27,7 +24,6 @@ async function query(layerId, { outFields = ['*'], ...filter }) {
 
 const sqlText = value => `'${value.replace(/'/g, "''")}'`;
 
-// Level 1: suburbs and localities, taken from the addresses. There are about 430, so one request is enough.
 export async function getAreas() {
   const { features } = await executeQueryJSON(`${SERVICE_URL}/${LAYERS.addresses}`, {
     where: 'suburb_locality IS NOT NULL',
@@ -42,9 +38,6 @@ export async function getAreas() {
   }));
 }
 
-// Level 2: roads of the area.
-// A road on the boundary of two areas has both names in `locality`, e.g. "Maryhill-Mornington".
-// A road is stored as several segments, so they are joined into one line per name.
 export async function getRoads(area) {
   const where = [
     `locality = ${sqlText(area.name)}`,
@@ -66,17 +59,14 @@ export async function getRoads(area) {
     .map(name => ({ name, geometry: new Polyline({ paths: paths.get(name), spatialReference: NZTM }) }));
 }
 
-// Level 3: lands within ROAD_BUFFER_M of the road
 export function getLandsAlongRoad(road) {
   return getLands({ geometry: road.geometry, distance: ROAD_BUFFER_M, units: 'meters' });
 }
 
-// Picking on the map: lands under the clicked point
 export function getLandsAt(point) {
   return getLands({ geometry: point });
 }
 
-// Properties first, then parcels. The road reserve is a parcel too, so it is left out.
 async function getLands(filter) {
   const [properties, parcels] = await Promise.all([
     query(LAYERS.properties, filter),
@@ -102,7 +92,6 @@ function toLand({ attributes: a, geometry }, type) {
   return { type, id: a.OBJECTID, label, attributes: a, geometry };
 }
 
-// Picking on the map: road segments around the land, which tell its road and area (locate.js)
 export async function getRoadsAround(land) {
   for (const distance of ROAD_SEARCH_M) {
     const features = await query(LAYERS.roads, {
@@ -121,10 +110,9 @@ export async function getRoadsAround(land) {
       }));
     }
   }
-  return [];
+  return []; 
 }
 
-// Level 4: addresses inside the land
 export async function getAddressesInside(land) {
   const features = await query(LAYERS.addresses, {
     outFields: ['address_id', 'full_address'],

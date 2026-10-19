@@ -1,8 +1,6 @@
 import { LAND_TYPES, POPUP_FIELDS } from './config.js';
 import { toWgs84 } from './geometry.js';
 
-// Unicode isolate marks work like dir="auto": English addresses and coordinates
-// keep their order inside the Arabic popup
 const isolate = text => `\u2068${text}\u2069`;
 
 const formatNumber = (value, digits = 2) =>
@@ -15,8 +13,6 @@ function formatWgs84(point) {
   return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
 }
 
-// Builds a popup out of sections of [label, value] rows. Each section is shown as a table.
-// The popup tables read their values from the graphic's attributes, so every row gets one.
 function popup(title, sections) {
   const attributes = {};
   const content = sections.map(([sectionTitle, rows]) => ({

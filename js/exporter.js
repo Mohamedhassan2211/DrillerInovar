@@ -20,8 +20,6 @@ export function buildLandRecord({ area, road, land, measurement, addresses }) {
       name: 'NZGD2000 / New Zealand Transverse Mercator 2000',
       units: 'meters',
     },
-    // A land picked on the map has no area when its road's locality is not in the area list,
-    // and no road either when none is near it (locate.js)
     area: area?.name ?? null,
     road: road?.name ?? null,
     land: {
@@ -30,7 +28,7 @@ export function buildLandRecord({ area, road, land, measurement, addresses }) {
       label: land.label,
       attributes: land.attributes,
     },
-    measurements: {
+       measurements: {
       areaM2: round(measurement.area),
       areaHa: round(measurement.area / 10000, 4),
       perimeterM: round(measurement.perimeter),
@@ -51,7 +49,6 @@ export function buildLandRecord({ area, road, land, measurement, addresses }) {
   };
 }
 
-// Adds the record to backend/Data/lands.json through the API. Returns { count }, the number of saved lands.
 export async function saveLandRecord(record) {
   let response;
   try {
@@ -61,7 +58,6 @@ export async function saveLandRecord(record) {
       body: JSON.stringify(record),
     });
   } catch {
-    // fetch fails without a response when nothing is listening, i.e. the API is not running
     throw new Error('تعذر الاتصال بالـ API. شغّل مشروع الباك اند من Visual Studio ثم احفظ مرة أخرى.');
   }
 
