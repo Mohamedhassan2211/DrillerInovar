@@ -179,6 +179,7 @@ function showSides(sides) {
     const item = document.createElement('calcite-list-item');
     item.label = `الضلع ${i + 1}`;
     item.innerHTML = `<span slot="content-end">${side.length.toFixed(2)} م</span>`;
+    item.addEventListener('calciteListItemSelect', () => mapView.showSide(side));
     return item;
   }));
 }

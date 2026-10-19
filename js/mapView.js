@@ -25,6 +25,7 @@ const STYLE = {
     polyline: { type: 'simple-line', color: '#00838f', width: '3px' },
     polygon: { type: 'simple-fill', color: [0, 131, 143, 0.2], outline: { color: '#00838f', width: '3px' } },
   },
+  side: { type: 'simple-line', color: [255, 87, 34, 0.9], width: '10px' },
   sideLabel: {
     type: 'text',
     color: '#c0392b',
@@ -41,6 +42,7 @@ const layers = {
   road: new GraphicsLayer(),
   land: new GraphicsLayer(),
   address: new GraphicsLayer(),
+  side: new GraphicsLayer(),
   drawing: new GraphicsLayer(),
 };
 
@@ -61,7 +63,7 @@ const mapElement = document.getElementById('map');
 
 mapElement.map = new ArcGISMap({
   basemap: { baseLayers: [osm] },
-  layers: [boundaries, layers.roadLands, layers.areaRoads, layers.road, layers.land, layers.address, layers.drawing],
+  layers: [boundaries, layers.roadLands, layers.areaRoads, layers.road, layers.land, layers.address, layers.side, layers.drawing],
 });
 mapElement.extent = OTAGO_EXTENT;
 mapElement.constraints = { maxZoom: 19, rotationEnabled: false };
@@ -190,6 +192,7 @@ function showDrawing(vertices) {
 
 export function startDrawing(onDrawn) {
   layers.drawing.removeAll();
+  layers.side.removeAll();
   mapElement.style.cursor = 'crosshair';
 
   const action = draw.create('multipoint');
@@ -209,6 +212,16 @@ export function finishDrawing() {
 
 export function showDrawingSides(sides) {
   addSideLabels(layers.drawing, sides);
+}
+
+export function showSide(side) {
+  layers.side.removeAll();
+  const graphic = new Graphic({
+    geometry: { type: 'polyline', paths: [[side.from, side.to]], spatialReference: NZTM },
+    symbol: STYLE.side,
+  });
+  layers.side.add(graphic);
+  goTo(graphic.geometry.extent.clone().expand(1.5));
 }
 
 export function setConverting(on) {
