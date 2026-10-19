@@ -22,6 +22,12 @@ export const LAND_TYPES = {
   parcel: 'قطعة أرض',
 };
 
+export const DRAWING_TYPES = {
+  point: 'نقطة',
+  polyline: 'خط',
+  polygon: 'مضلع',
+};
+
 export const POPUP_FIELDS = {
   property: {
     ValuationReference: 'رقم التقييم',

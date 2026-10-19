@@ -1,10 +1,10 @@
 import * as api from './api.js';
 import * as mapView from './mapView.js';
 import { List } from './list.js';
-import { measureLand } from './geometry.js';
+import { measureLand, measureSides } from './geometry.js';
 import { locateLand } from './locate.js';
 import { buildLandRecord, saveLandRecord } from './exporter.js';
-import { LAND_TYPES } from './config.js';
+import { LAND_TYPES, DRAWING_TYPES } from './config.js';
 
 const state = {
   area: null,
@@ -17,6 +17,10 @@ const state = {
 const statusBox = document.getElementById('status');
 const saveButton = document.getElementById('save-json');
 const pickButton = document.getElementById('pick-land');
+const drawButton = document.getElementById('draw');
+const convertButton = document.getElementById('convert');
+const drawingBlock = document.getElementById('drawing');
+const sidesList = document.getElementById('sides');
 
 const areaList = new List('area', area => (area.city ? `${area.name}, ${area.city}` : area.name), selectArea);
 const roadList = new List('road', road => road.name, selectRoad);
@@ -24,9 +28,13 @@ const landList = new List('land', land => `${land.label} (${LAND_TYPES[land.type
 const addressList = new List('address', address => address.label, mapView.showAddress);
 
 let picking = false;
+let drawing = false;
+let converting = false;
 
 saveButton.addEventListener('click', saveLand);
 pickButton.addEventListener('click', () => setPicking(!picking));
+drawButton.addEventListener('click', () => (drawing ? finishDrawing() : startDrawing()));
+convertButton.addEventListener('click', () => setConverting(!converting));
 loadAreas();
 
 async function loadAreas() {
@@ -99,6 +107,7 @@ function setPicking(on) {
   picking = on;
   pickButton.kind = on ? 'danger' : 'brand';
   pickButton.textContent = on ? 'إلغاء التحديد' : 'تحديد الأرض من الخريطة';
+  drawButton.disabled = on;
   mapView.setPicking(on ? pickLand : null);
   setStatus(on ? 'قرّب الخريطة حتى تظهر حدود العقارات، ثم اضغط على الأرض.' : '');
 }
@@ -135,6 +144,51 @@ async function pickLand(point) {
   } catch (error) {
     showError(error);
   }
+}
+
+function startDrawing() {
+  setDrawing(true);
+  showSides([]);
+  mapView.startDrawing(drawingDone);
+}
+
+function finishDrawing() {
+  mapView.finishDrawing();
+  if (drawing) setDrawing(false);
+}
+
+function setDrawing(on) {
+  drawing = on;
+  drawButton.kind = on ? 'danger' : 'brand';
+  drawButton.textContent = on ? 'إنهاء الرسم' : 'الرسم على الخريطة';
+  pickButton.disabled = on;
+  setStatus(on ? 'اضغط على الخريطة لإضافة النقاط، وللإنهاء اضغط مرتين على آخر نقطة أو اضغط "إنهاء الرسم".' : '');
+}
+
+function drawingDone(geometry) {
+  setDrawing(false);
+  const sides = measureSides(geometry);
+  mapView.showDrawingSides(sides);
+  showSides(sides);
+  setStatus(`تم رسم ${DRAWING_TYPES[geometry.type]}.`);
+}
+
+function showSides(sides) {
+  drawingBlock.hidden = !sides.length;
+  sidesList.replaceChildren(...sides.map((side, i) => {
+    const item = document.createElement('calcite-list-item');
+    item.label = `الضلع ${i + 1}`;
+    item.innerHTML = `<span slot="content-end">${side.length.toFixed(2)} م</span>`;
+    return item;
+  }));
+}
+
+function setConverting(on) {
+  converting = on;
+  convertButton.kind = on ? 'danger' : 'brand';
+  convertButton.textContent = on ? 'إغلاق تحويل الإحداثيات' : 'تحويل الإحداثيات';
+  mapView.setConverting(on);
+  setStatus(on ? 'حرّك الماوس على الخريطة لتظهر إحداثياته بالنظامين، أو اضغط القلم واكتب إحداثيات لتحويلها (XY: خط الطول ثم خط العرض، NZTM: E ثم N).' : '');
 }
 
 async function saveLand() {

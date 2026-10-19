@@ -1,3 +1,5 @@
+import { NZTM } from './config.js';
+
 const [areaOperator, lengthOperator, projectOperator] = await $arcgis.import([
   '@arcgis/core/geometry/operators/areaOperator.js',
   '@arcgis/core/geometry/operators/lengthOperator.js',
@@ -15,6 +17,14 @@ export function measureLand(polygon) {
     sides: polygon.rings.flatMap(ring => ringSides(ring)),
     center: polygon.extent.center,
   };
+}
+
+export function measureSides(geometry) {
+  if (geometry.type === 'point') return [];
+
+  const nztm = projectOperator.execute(geometry, NZTM);
+  const points = geometry.type === 'polygon' ? nztm.rings[0] : nztm.paths[0];
+  return points.slice(1).map((to, i) => ({ from: points[i], to, length: distance(points[i], to) }));
 }
 
 export function toWgs84(point) {
