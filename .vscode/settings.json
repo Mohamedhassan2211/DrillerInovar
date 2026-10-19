@@ -8,5 +8,6 @@
     "venv/**",
     ".venv/**",
     "backend/**"
-  ]
+  ],
+  "liveServer.settings.port": 81
 }
