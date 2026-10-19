@@ -11,8 +11,14 @@
   <aside class="sidebar">
     <h1>Otago Property Explorer</h1>
 
-    <calcite-button id="pick-land" width="full">تحديد الأرض من الخريطة</calcite-button>
+    <h2>أدوات الخريطة</h2>
+    <div class="map-tools">
+      <calcite-button id="pick-land" width="full">تحديد الأرض من الخريطة</calcite-button>
+      <calcite-button id="draw" width="full">الرسم على الخريطة</calcite-button>
+      <calcite-button id="convert" width="full">تحويل الإحداثيات</calcite-button>
+    </div>
 
+    <h2>اختيار الأرض</h2>
     <calcite-label>
       1. المنطقة / الحي
       <calcite-combobox id="area" dir="ltr" placeholder="ابحث عن المنطقة" selection-mode="single-persist" disabled></calcite-combobox>
@@ -35,11 +41,16 @@
 
     <calcite-button id="save-json" width="full" disabled>حفظ بيانات الأرض (JSON)</calcite-button>
     <p id="status"></p>
+
+    <calcite-block id="drawing" heading="أطوال أضلاع الرسم" expanded hidden>
+      <calcite-list id="sides" label="أطوال أضلاع الرسم" interaction-mode="static"></calcite-list>
+    </calcite-block>
   </aside>
 
   <arcgis-map id="map" popup-component-enabled>
     <arcgis-zoom slot="top-left"></arcgis-zoom>
     <arcgis-scale-bar slot="bottom-left" unit="metric"></arcgis-scale-bar>
+    <arcgis-coordinate-conversion slot="bottom-right" expanded storage-disabled hidden></arcgis-coordinate-conversion>
     <arcgis-popup slot="popup" hide-action-bar highlight-disabled></arcgis-popup>
   </arcgis-map>
 
