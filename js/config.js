@@ -1,6 +1,7 @@
 export const SERVICE_URL = 'https://maps.orc.govt.nz/arcgis/rest/services/PropertyExternal/MapServer';
 
-export const API_URL = 'http://localhost:5000/api';
+export const API_URL = 'http://localhost/Api/api';
+
 
 export const LAYERS = {
   properties: 0,
