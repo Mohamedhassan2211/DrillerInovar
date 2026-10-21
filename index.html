@@ -11,40 +11,54 @@
   <aside class="sidebar">
     <h1>Otago Property Explorer</h1>
 
-    <h2>أدوات الخريطة</h2>
-    <div class="map-tools">
-      <calcite-button id="pick-land" width="full">تحديد الأرض من الخريطة</calcite-button>
-      <calcite-button id="draw" width="full">الرسم على الخريطة</calcite-button>
-      <calcite-button id="convert" width="full">تحويل الإحداثيات</calcite-button>
-    </div>
+    <calcite-tabs layout="center">
+      <calcite-tab-nav slot="title-group">
+        <calcite-tab-title icon-start="map" selected>الأراضي</calcite-tab-title>
+        <calcite-tab-title icon-start="pencil">الرسم</calcite-tab-title>
+      </calcite-tab-nav>
 
-    <h2>اختيار الأرض</h2>
-    <calcite-label>
-      1. المنطقة / الحي
-      <calcite-combobox id="area" dir="ltr" placeholder="ابحث عن المنطقة" selection-mode="single-persist" disabled></calcite-combobox>
-    </calcite-label>
+      <calcite-tab selected>
+        <h2>أدوات الخريطة</h2>
+        <div class="map-tools">
+          <calcite-button id="pick-land" width="full">تحديد الأرض من الخريطة</calcite-button>
+          <calcite-button id="convert" width="full">تحويل الإحداثيات</calcite-button>
+        </div>
 
-    <calcite-label>
-      2. الطريق
-      <calcite-combobox id="road" dir="ltr" placeholder="ابحث عن الطريق" selection-mode="single-persist" disabled></calcite-combobox>
-    </calcite-label>
+        <h2>اختيار الأرض</h2>
+        <calcite-label>
+          1. المنطقة / الحي
+          <calcite-combobox id="area" dir="ltr" placeholder="ابحث عن المنطقة" selection-mode="single-persist" disabled></calcite-combobox>
+        </calcite-label>
 
-    <calcite-label>
-      3. العقار / قطعة الأرض
-      <calcite-combobox id="land" dir="ltr" placeholder="ابحث عن العقار أو القطعة" selection-mode="single-persist" disabled></calcite-combobox>
-    </calcite-label>
+        <calcite-label>
+          2. الطريق
+          <calcite-combobox id="road" dir="ltr" placeholder="ابحث عن الطريق" selection-mode="single-persist" disabled></calcite-combobox>
+        </calcite-label>
 
-    <calcite-label>
-      4. العنوان
-      <calcite-combobox id="address" dir="ltr" placeholder="العناوين داخل الأرض" selection-mode="single-persist" disabled></calcite-combobox>
-    </calcite-label>
+        <calcite-label>
+          3. العقار / قطعة الأرض
+          <calcite-combobox id="land" dir="ltr" placeholder="ابحث عن العقار أو القطعة" selection-mode="single-persist" disabled></calcite-combobox>
+        </calcite-label>
 
-    <calcite-button id="save-json" width="full" disabled>حفظ بيانات الأرض (JSON)</calcite-button>
+        <calcite-label>
+          4. العنوان
+          <calcite-combobox id="address" dir="ltr" placeholder="العناوين داخل الأرض" selection-mode="single-persist" disabled></calcite-combobox>
+        </calcite-label>
+
+        <calcite-button id="save-json" width="full" disabled>حفظ بيانات الأرض (JSON)</calcite-button>
+      </calcite-tab>
+
+      <calcite-tab>
+        <p class="hint">ارسم نقطة أو خطاً أو مضلعاً على الخريطة لمعرفة طول كل ضلع، ثم اضغط على أي أرض داخل الرسم لعرض بياناتها.</p>
+        <calcite-button id="draw" width="full">الرسم على الخريطة</calcite-button>
+
+        <calcite-block id="drawing" heading="أطوال أضلاع الرسم" expanded hidden>
+          <calcite-list id="sides" label="أطوال أضلاع الرسم" selection-mode="single-persist" selection-appearance="border"></calcite-list>
+        </calcite-block>
+      </calcite-tab>
+    </calcite-tabs>
+
     <p id="status"></p>
-
-    <calcite-block id="drawing" heading="أطوال أضلاع الرسم" expanded hidden>
-      <calcite-list id="sides" label="أطوال أضلاع الرسم" selection-mode="single-persist" selection-appearance="border"></calcite-list>
-    </calcite-block>
   </aside>
 
   <arcgis-map id="map" popup-component-enabled>

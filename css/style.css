@@ -36,23 +36,38 @@ body {
   color: var(--calcite-color-text-3);
 }
 
+.sidebar calcite-tabs {
+  margin-top: 16px;
+}
+
+.sidebar calcite-tab {
+  --calcite-tab-content-space-y: 16px;
+}
+
+.sidebar calcite-tab h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .map-tools {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
-.map-tools calcite-button {
-  flex: 1 1 0;
-  min-width: max-content;
-}
-
-#convert {
-  flex-basis: 100%;
+.hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--calcite-color-text-3);
 }
 
 #status {
-  margin: 16px 0 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0;
   padding: 10px 12px;
   font-size: 13px;
   line-height: 1.7;
