@@ -1,7 +1,7 @@
 import * as api from './api.js';
 import * as mapView from './mapView.js';
 import { List } from './list.js';
-import { measureLand, measureSides } from './geometry.js';
+import { measureLand, measureSides, intersects } from './geometry.js';
 import { locateLand } from './locate.js';
 import { buildLandRecord, saveLandRecord } from './exporter.js';
 import { LAND_TYPES, DRAWING_TYPES } from './config.js';
@@ -30,6 +30,7 @@ const addressList = new List('address', address => address.label, mapView.showAd
 let picking = false;
 let drawing = false;
 let converting = false;
+let drawn = null;
 
 saveButton.addEventListener('click', saveLand);
 pickButton.addEventListener('click', () => setPicking(!picking));
@@ -108,7 +109,7 @@ function setPicking(on) {
   pickButton.kind = on ? 'danger' : 'brand';
   pickButton.textContent = on ? 'إلغاء التحديد' : 'تحديد الأرض من الخريطة';
   drawButton.disabled = on;
-  mapView.setPicking(on ? pickLand : null);
+  mapView.setPicking(on ? pickLand : drawn && openDrawnLand);
   setStatus(on ? 'قرّب الخريطة حتى تظهر حدود العقارات، ثم اضغط على الأرض.' : '');
 }
 
@@ -123,7 +124,7 @@ async function pickLand(point) {
     setPicking(false);
 
     setStatus('جاري تحديد المنطقة والطريق...');
-    const { area, road } = locateLand(land, await api.getRoadsAround(land), areaList.items);
+    const { area, road, nearest } = locateLand(land, await api.getRoadsAround(land), areaList.items);
     if (area) {
       await areaList.select(area);
       await roadList.select(roadList.items.find(item => item.name === road.name));
@@ -140,13 +141,31 @@ async function pickLand(point) {
       item = land;
       landList.setItems([...landList.items, land]);
     }
-    landList.select(item);
+    await landList.select(item);
+    if (nearest) mapView.showNearestRoad(land, nearest);
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function openDrawnLand(point) {
+  setStatus('جاري البحث عن الأرض...');
+  try {
+    const [land] = (await api.getLandsAt(point)).filter(land => intersects(land.geometry, drawn));
+    if (!land) {
+      setStatus('لا توجد أرض داخل الرسم في هذا المكان. اضغط على أرض داخل الرسم أو تتقاطع معه.');
+      return;
+    }
+    mapView.showLandPopup(land, measureLand(land.geometry), await api.getAddressesInside(land));
+    setStatus(`${LAND_TYPES[land.type]}: ${land.label}`);
   } catch (error) {
     showError(error);
   }
 }
 
 function startDrawing() {
+  drawn = null;
+  mapView.setPicking(null);
   setDrawing(true);
   showSides([]);
   mapView.startDrawing(drawingDone);
@@ -167,10 +186,12 @@ function setDrawing(on) {
 
 function drawingDone(geometry) {
   setDrawing(false);
+  drawn = geometry;
+  mapView.setPicking(openDrawnLand);
   const sides = measureSides(geometry);
   mapView.showDrawingSides(sides);
   showSides(sides);
-  setStatus(`تم رسم ${DRAWING_TYPES[geometry.type]}.`);
+  setStatus(`تم رسم ${DRAWING_TYPES[geometry.type]}. اضغط على أي أرض داخل الرسم أو تتقاطع معه لعرض بياناتها.`);
 }
 
 function showSides(sides) {

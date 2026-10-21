@@ -1,7 +1,8 @@
 import { NZTM } from './config.js';
 
-const [areaOperator, lengthOperator, projectOperator] = await $arcgis.import([
+const [areaOperator, intersectsOperator, lengthOperator, projectOperator] = await $arcgis.import([
   '@arcgis/core/geometry/operators/areaOperator.js',
+  '@arcgis/core/geometry/operators/intersectsOperator.js',
   '@arcgis/core/geometry/operators/lengthOperator.js',
   '@arcgis/core/geometry/operators/projectOperator.js',
 ]);
@@ -29,6 +30,10 @@ export function measureSides(geometry) {
 
 export function toWgs84(point) {
   return projectOperator.execute(point, { wkid: 4326 });
+}
+
+export function intersects(polygon, drawing) {
+  return intersectsOperator.execute(polygon, projectOperator.execute(drawing, NZTM));
 }
 
 const distance = ([x1, y1], [x2, y2]) => Math.hypot(x2 - x1, y2 - y1);

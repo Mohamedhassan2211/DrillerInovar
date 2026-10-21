@@ -26,6 +26,7 @@ const STYLE = {
     polygon: { type: 'simple-fill', color: [0, 131, 143, 0.2], outline: { color: '#00838f', width: '3px' } },
   },
   side: { type: 'simple-line', color: [255, 87, 34, 0.9], width: '10px' },
+  nearestRoad: { type: 'simple-line', color: [241, 196, 15, 0.9], width: '8px' },
   sideLabel: {
     type: 'text',
     color: '#c0392b',
@@ -154,6 +155,20 @@ export function showLand(land, measurement, addresses) {
 
   goTo(land.geometry.extent.clone().expand(1.5));
   mapElement.openPopup({ features: [graphic] });
+}
+
+export function showNearestRoad(land, road) {
+  layers.land.addMany([
+    new Graphic({ geometry: road.geometry, symbol: STYLE.nearestRoad }),
+    new Graphic({
+      geometry: land.geometry.extent.center,
+      symbol: { ...STYLE.sideLabel, text: `${road.name} ${road.distance.toFixed(2)} m` },
+    }),
+  ]);
+}
+
+export function showLandPopup(land, measurement, addresses) {
+  mapElement.openPopup({ features: [new Graphic({ geometry: land.geometry, ...landPopup(land, measurement, addresses) })] });
 }
 
 export function showAddress(address) {
