@@ -3,7 +3,7 @@ import * as mapView from './mapView.js';
 import { List } from './list.js';
 import { measureLand, measureSides, intersects } from './geometry.js';
 import { locateLand } from './locate.js';
-import { buildLandRecord, saveLandRecord } from './exporter.js';
+import { buildLandRecord, saveLandRecord, saveMapImage } from './exporter.js';
 import { saveShapefile, loadShapefile } from './shapefile.js';
 import { LAND_TYPES, DRAWING_TYPES } from './config.js';
 
@@ -17,6 +17,8 @@ const state = {
 
 const statusBox = document.getElementById('status');
 const saveButton = document.getElementById('save-json');
+const saveImageButton = document.getElementById('save-image');
+const showImageButton = document.getElementById('show-image');
 const pickButton = document.getElementById('pick-land');
 const drawButton = document.getElementById('draw');
 const convertButton = document.getElementById('convert');
@@ -40,6 +42,7 @@ let converting = false;
 let drawn = null;
 
 saveButton.addEventListener('click', saveLand);
+saveImageButton.addEventListener('click', saveImage);
 pickButton.addEventListener('click', () => setPicking(!picking));
 drawButton.addEventListener('click', () => (drawing ? finishDrawing() : startDrawing()));
 convertButton.addEventListener('click', () => setConverting(!converting));
@@ -111,6 +114,7 @@ async function selectLand(land) {
     addressList.setItems(addresses);
     mapView.showLand(land, state.measurement, addresses);
     saveButton.disabled = false;
+    saveImageButton.disabled = false;
     setStatus(`عدد الأضلاع ${state.measurement.sides.length}، وعدد العناوين داخل الأرض ${addresses.length}.`);
   } catch (error) {
     showError(error);
@@ -275,6 +279,21 @@ async function saveLand() {
   }
 }
 
+async function saveImage() {
+  const { land } = state;
+  setStatus('جاري أخذ صورة الأرض...');
+  try {
+    const { imageUrl } = await saveMapImage(state.measurement.center);
+    if (state.land !== land) return;
+
+    showImageButton.href = imageUrl;
+    showImageButton.hidden = false;
+    setStatus('تم أخذ صورة الأرض وحفظ بياناتها في images.json. اضغط "عرض الصورة" لفتحها في تبويب جديد.');
+  } catch (error) {
+    showError(error);
+  }
+}
+
 function resetFrom(level) {
   if (level <= 1) {
     state.area = null;
@@ -296,6 +315,8 @@ function resetFrom(level) {
   mapView.clear('land');
   mapView.clear('address');
   saveButton.disabled = true;
+  saveImageButton.disabled = true;
+  showImageButton.hidden = true;
 }
 
 function setStatus(text, isError = false) {

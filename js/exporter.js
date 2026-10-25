@@ -49,18 +49,27 @@ export function buildLandRecord({ area, road, land, measurement, addresses }) {
   };
 }
 
-export async function saveLandRecord(record) {
+async function callApi(path, options) {
   let response;
   try {
-    response = await fetch(`${API_URL}/lands`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
-    });
+    response = await fetch(`${API_URL}/${path}`, options);
   } catch {
-    throw new Error('تعذر الاتصال بالـ API. شغّل مشروع الباك اند من Visual Studio ثم احفظ مرة أخرى.');
+    throw new Error('تعذر الاتصال بالـ API. شغّل مشروع الباك اند من Visual Studio ثم حاول مرة أخرى.');
   }
 
   if (!response.ok) throw new Error(`الـ API رد بخطأ ${response.status}`);
   return response.json();
+}
+
+export function saveLandRecord(record) {
+  return callApi('lands', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(record),
+  });
+}
+
+export function saveMapImage(point) {
+  const { latitude, longitude } = toWgs84(point);
+  return callApi(`map-image/info?x=${round(longitude, 7)}&y=${round(latitude, 7)}`);
 }
