@@ -4,6 +4,7 @@ import { List } from './list.js';
 import { measureLand, measureSides, intersects } from './geometry.js';
 import { locateLand } from './locate.js';
 import { buildLandRecord, saveLandRecord } from './exporter.js';
+import { saveShapefile, loadShapefile } from './shapefile.js';
 import { LAND_TYPES, DRAWING_TYPES } from './config.js';
 
 const state = {
@@ -19,6 +20,12 @@ const saveButton = document.getElementById('save-json');
 const pickButton = document.getElementById('pick-land');
 const drawButton = document.getElementById('draw');
 const convertButton = document.getElementById('convert');
+const printButton = document.getElementById('print');
+const resetLandButton = document.getElementById('reset-land');
+const resetDrawingButton = document.getElementById('reset-drawing');
+const saveDrawingButton = document.getElementById('save-drawing');
+const loadDrawingButton = document.getElementById('load-drawing');
+const drawingFile = document.getElementById('drawing-file');
 const drawingBlock = document.getElementById('drawing');
 const sidesList = document.getElementById('sides');
 
@@ -36,6 +43,12 @@ saveButton.addEventListener('click', saveLand);
 pickButton.addEventListener('click', () => setPicking(!picking));
 drawButton.addEventListener('click', () => (drawing ? finishDrawing() : startDrawing()));
 convertButton.addEventListener('click', () => setConverting(!converting));
+printButton.addEventListener('click', mapView.printMap);
+resetLandButton.addEventListener('click', resetLand);
+resetDrawingButton.addEventListener('click', resetDrawing);
+saveDrawingButton.addEventListener('click', saveDrawing);
+loadDrawingButton.addEventListener('click', () => drawingFile.click());
+drawingFile.addEventListener('change', loadDrawing);
 loadAreas();
 
 async function loadAreas() {
@@ -109,6 +122,7 @@ function setPicking(on) {
   pickButton.kind = on ? 'danger' : 'brand';
   pickButton.textContent = on ? 'إلغاء التحديد' : 'تحديد الأرض من الخريطة';
   drawButton.disabled = on;
+  loadDrawingButton.disabled = on;
   mapView.setPicking(on ? pickLand : drawn && openDrawnLand);
   setStatus(on ? 'قرّب الخريطة حتى تظهر حدود العقارات، ثم اضغط على الأرض.' : '');
 }
@@ -165,6 +179,7 @@ async function openDrawnLand(point) {
 
 function startDrawing() {
   drawn = null;
+  saveDrawingButton.disabled = true;
   mapView.setPicking(null);
   setDrawing(true);
   showSides([]);
@@ -191,7 +206,44 @@ function drawingDone(geometry) {
   const sides = measureSides(geometry);
   mapView.showDrawingSides(sides);
   showSides(sides);
+  saveDrawingButton.disabled = false;
   setStatus(`تم رسم ${DRAWING_TYPES[geometry.type]}. اضغط على أي أرض داخل الرسم أو تتقاطع معه لعرض بياناتها.`);
+}
+
+async function saveDrawing() {
+  try {
+    await saveShapefile(drawn);
+    setStatus('تم حفظ الرسم في الملف drawing.zip.');
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function loadDrawing() {
+  const [file] = drawingFile.files;
+  drawingFile.value = '';
+  setStatus('جاري تحميل الرسم...');
+  try {
+    drawingDone(mapView.showSavedDrawing(await loadShapefile(file)));
+  } catch (error) {
+    showError(error);
+  }
+}
+
+function resetLand() {
+  if (picking) setPicking(false);
+  resetFrom(1);
+  setStatus('تم مسح الاختيارات.');
+}
+
+function resetDrawing() {
+  drawn = null;
+  saveDrawingButton.disabled = true;
+  if (drawing) setDrawing(false);
+  if (!picking) mapView.setPicking(null);
+  mapView.clearDrawing();
+  showSides([]);
+  setStatus('تم مسح الرسم.');
 }
 
 function showSides(sides) {

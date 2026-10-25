@@ -1,4 +1,4 @@
-import { SERVICE_URL, LAYERS, NZTM, ROAD_BUFFER_M, ROAD_SEARCH_M } from './config.js';
+import { SERVICE_URL, LAYERS, NZTM, ROAD_BUFFER_M, ROAD_SEARCH_M, PAGE_SIZE } from './config.js';
 
 const [{ executeForIds, executeQueryJSON }, Polyline] = await $arcgis.import([
   '@arcgis/core/rest/query.js',
@@ -7,18 +7,19 @@ const [{ executeForIds, executeQueryJSON }, Polyline] = await $arcgis.import([
 
 async function query(layerId, { outFields = ['*'], ...filter }) {
   const url = `${SERVICE_URL}/${layerId}`;
-  const ids = await executeForIds(url, filter);
+  const options = { outFields, returnGeometry: true, outSpatialReference: NZTM };
 
-  const batches = [];
-  for (let i = 0; i < ids.length; i += 1000) {
-    batches.push(executeQueryJSON(url, {
-      objectIds: ids.slice(i, i + 1000),
-      outFields,
-      returnGeometry: true,
-      outSpatialReference: NZTM,
-    }));
+  const [firstPage, ids] = await Promise.all([
+    executeQueryJSON(url, { ...filter, ...options, num: PAGE_SIZE }),
+    executeForIds(url, filter),
+  ]);
+  if (!firstPage.exceededTransferLimit) return firstPage.features;
+
+  const pages = [];
+  for (let i = 0; i < ids.length; i += PAGE_SIZE) {
+    pages.push(executeQueryJSON(url, { ...options, objectIds: ids.slice(i, i + PAGE_SIZE) }));
   }
-  const results = await Promise.all(batches);
+  const results = await Promise.all(pages);
   return results.flatMap(result => result.features);
 }
 

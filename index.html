@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Otago Property Explorer</title>
   <script type="module" src="https://js.arcgis.com/5.1/"></script>
+  <script src="https://unpkg.com/@mapbox/shp-write@0.4.3/shpwrite.js"></script>
+  <script src="https://unpkg.com/shpjs@6.2.0/dist/shp.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -19,7 +21,7 @@
 
       <calcite-tab selected>
         <h2>أدوات الخريطة</h2>
-        <div class="map-tools">
+        <div class="buttons">
           <calcite-button id="pick-land" width="full">تحديد الأرض من الخريطة</calcite-button>
           <calcite-button id="convert" width="full">تحويل الإحداثيات</calcite-button>
         </div>
@@ -45,12 +47,21 @@
           <calcite-combobox id="address" dir="ltr" placeholder="العناوين داخل الأرض" selection-mode="single-persist" disabled></calcite-combobox>
         </calcite-label>
 
-        <calcite-button id="save-json" width="full" disabled>حفظ بيانات الأرض (JSON)</calcite-button>
+        <div class="buttons">
+          <calcite-button id="save-json" width="full" disabled>حفظ بيانات الأرض (JSON)</calcite-button>
+          <calcite-button id="reset-land" width="full" appearance="outline" kind="neutral" icon-start="reset">مسح الاختيارات</calcite-button>
+        </div>
       </calcite-tab>
 
       <calcite-tab>
-        <p class="hint">ارسم نقطة أو خطاً أو مضلعاً على الخريطة لمعرفة طول كل ضلع، ثم اضغط على أي أرض داخل الرسم لعرض بياناتها.</p>
-        <calcite-button id="draw" width="full">الرسم على الخريطة</calcite-button>
+        <p class="hint">ارسم نقطة أو خطاً أو مضلعاً على الخريطة لمعرفة طول كل ضلع، ثم اضغط على أي أرض داخل الرسم لعرض بياناتها. ويمكنك حفظ الرسم في ملف Shapefile وتحميله مرة أخرى.</p>
+        <div class="buttons">
+          <calcite-button id="draw" width="full">الرسم على الخريطة</calcite-button>
+          <calcite-button id="save-drawing" width="full" disabled>حفظ الرسم (Shapefile)</calcite-button>
+          <calcite-button id="load-drawing" width="full">تحميل رسم محفوظ</calcite-button>
+          <input id="drawing-file" type="file" accept=".zip" hidden>
+          <calcite-button id="reset-drawing" width="full" appearance="outline" kind="neutral" icon-start="reset">مسح الرسم</calcite-button>
+        </div>
 
         <calcite-block id="drawing" heading="أطوال أضلاع الرسم" expanded hidden>
           <calcite-list id="sides" label="أطوال أضلاع الرسم" selection-mode="single-persist" selection-appearance="border"></calcite-list>
@@ -63,10 +74,13 @@
 
   <arcgis-map id="map" popup-component-enabled>
     <arcgis-zoom slot="top-left"></arcgis-zoom>
+    <calcite-action id="print" slot="top-left" icon="print" text="طباعة الخريطة" title="طباعة الخريطة"></calcite-action>
     <arcgis-scale-bar slot="bottom-left" unit="metric"></arcgis-scale-bar>
     <arcgis-coordinate-conversion slot="bottom-right" expanded storage-disabled hidden></arcgis-coordinate-conversion>
     <arcgis-popup slot="popup" hide-action-bar highlight-disabled></arcgis-popup>
   </arcgis-map>
+
+  <img id="print-image" alt="الخريطة">
 
   <script type="module" src="js/main.js"></script>
 </body>

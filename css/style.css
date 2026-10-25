@@ -50,7 +50,7 @@ body {
   border-top: 0;
 }
 
-.map-tools {
+.buttons {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -100,6 +100,27 @@ body {
 
 arcgis-coordinate-conversion {
   direction: ltr;
+}
+
+#print-image {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: landscape;
+  }
+
+  body > :not(#print-image) {
+    display: none;
+  }
+
+  #print-image {
+    display: block;
+    max-width: 100%;
+    max-height: 100vh;
+    margin: auto;
+  }
 }
 
 @media (max-width: 700px) {

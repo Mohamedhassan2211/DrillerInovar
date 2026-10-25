@@ -18,6 +18,8 @@ export const ROAD_BUFFER_M = 15;
 
 export const ROAD_SEARCH_M = [250, 5000];
 
+export const PAGE_SIZE = 1000;
+
 export const LAND_TYPES = {
   property: 'عقار',
   parcel: 'قطعة أرض',

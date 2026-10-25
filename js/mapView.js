@@ -60,6 +60,7 @@ const osm = new WebTileLayer({
 });
 
 const mapElement = document.getElementById('map');
+const printImage = document.getElementById('print-image');
 
 mapElement.map = new ArcGISMap({
   basemap: { baseLayers: [osm] },
@@ -197,10 +198,20 @@ function showDrawing(vertices) {
   layers.drawing.removeAll();
   if (!vertices.length) return null;
 
-  const geometry = drawingGeometry(vertices);
+  return addDrawing(drawingGeometry(vertices));
+}
+
+function addDrawing(geometry) {
   const graphic = new Graphic({ geometry, symbol: STYLE.drawing[geometry.type] });
   layers.drawing.add(graphic);
   return graphic.geometry;
+}
+
+export function showSavedDrawing(geometry) {
+  clearDrawing();
+  const drawing = addDrawing(geometry);
+  goTo(drawing);
+  return drawing;
 }
 
 export function startDrawing(onDrawn) {
@@ -223,6 +234,13 @@ export function finishDrawing() {
   mapElement.style.cursor = '';
 }
 
+export function clearDrawing() {
+  draw.reset();
+  layers.drawing.removeAll();
+  layers.side.removeAll();
+  mapElement.closePopup();
+}
+
 export function showDrawingSides(sides) {
   addSideLabels(layers.drawing, sides);
 }
@@ -239,4 +257,11 @@ export function showSide(side) {
 
 export function setConverting(on) {
   coordinates.hidden = !on;
+}
+
+export async function printMap() {
+  const { dataUrl } = await mapElement.takeScreenshot();
+  printImage.src = dataUrl;
+  await printImage.decode();
+  window.print();
 }
